@@ -1,47 +1,51 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
-export default function Login() {
+export default function Register() {
   const navigate = useNavigate();
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // 🔥 auto redirect if already logged in
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("loggedInUser"));
-    if (user) {
-      navigate("/dashboard");
-    }
-  }, []);
-
-  const handleLogin = (e) => {
+  const handleRegister = (e) => {
     e.preventDefault();
 
-    if (!email || !password) {
+    // validation
+    if (!name || !email || !password) {
       alert("Please fill out all fields");
       return;
     }
 
-    // get registered users
+    // get existing users
     const users = JSON.parse(localStorage.getItem("users")) || [];
 
-    // find matching user
-    const foundUser = users.find(
-      (user) => user.email === email && user.password === password
-    );
+    // check if user already exists
+    const userExists = users.find((user) => user.email === email);
 
-    if (!foundUser) {
-      alert("Invalid email or password");
+    if (userExists) {
+      alert("User already exists!");
       return;
     }
 
-    // store logged-in session
-    localStorage.setItem("loggedInUser", JSON.stringify(foundUser));
+    // create new user object (Firebase-ready structure)
+    const newUser = {
+      id: Date.now(),
+      name,
+      email,
+      password,
+      role: "admin",
+      createdAt: new Date().toISOString(),
+    };
 
-    alert("Login successful!");
+    // save user
+    users.push(newUser);
+    localStorage.setItem("users", JSON.stringify(users));
 
-    navigate("/dashboard");
+    alert("Account created successfully!");
+
+    // redirect to login
+    navigate("/");
   };
 
   return (
@@ -49,14 +53,22 @@ export default function Login() {
       <div className="bg-white w-full max-w-md rounded-2xl border p-8 shadow-sm">
 
         <h1 className="text-3xl font-bold text-center mb-2">
-          Admin Login
+          Create Account
         </h1>
 
         <p className="text-gray-500 text-center mb-8">
-          Sign in to your admin account
+          Register as Admin
         </p>
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleRegister} className="space-y-4">
+
+          <input
+            type="text"
+            placeholder="Enter your full name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full border rounded-lg p-3"
+          />
 
           <input
             type="email"
@@ -68,7 +80,7 @@ export default function Login() {
 
           <input
             type="password"
-            placeholder="Enter your password"
+            placeholder="Create a password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full border rounded-lg p-3"
@@ -78,15 +90,15 @@ export default function Login() {
             type="submit"
             className="w-full bg-black text-white py-3 rounded-lg"
           >
-            Login
+            Register
           </button>
 
         </form>
 
         <p className="text-center mt-6">
-          Don't have an account?{" "}
-          <Link to="/register" className="font-semibold">
-            Register
+          Already have an account?{" "}
+          <Link to="/" className="font-semibold">
+            Login
           </Link>
         </p>
 
