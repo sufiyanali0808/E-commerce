@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import Title from "./Title";
 import ProductItem from "./ProductItems";
 
-const RelatedProducts = (category, subCategory) => {
+const RelatedProducts = ({ category, subCategory }) => {
   const { products } = useContext(ShopContext);
   const [related, setRelated] = useState([]);
 

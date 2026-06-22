@@ -25,6 +25,7 @@ import pi31 from "./product31.png";
 import pi32 from "./product32.png";
 import pi41 from "./product41.png";
 import pi42 from "./product42.png";
+import pi43 from "./product43.png";
 import pi51 from "./product51.png";
 import pi52 from "./product52.png";
 import pi53 from "./product53.png";
@@ -57,45 +58,6 @@ export const products = [
     description:
       "A lightweight and stylish for men. Casual wear. Water Resistant.",
     price: 1000,
-    image: [pi11],
-    category: "Men",
-    subCategory: "Topwear",
-    sizes: ["S", "M", "L"],
-    date: 1716634345448,
-    bestseller: true,
-  },
-  {
-    _id: "aaab",
-    name: "Watch For men",
-    description:
-      "A lightweight and stylish for men. Casual wear. Water Resistant.",
-    price: 110,
-    image: [pi11],
-    category: "Men",
-    subCategory: "Topwear",
-    sizes: ["S", "M", "L"],
-    date: 1716634345448,
-    bestseller: true,
-  },
-  {
-    _id: "aaac",
-    name: "Watch For men",
-    description:
-      "A lightweight and stylish for men. Casual wear. Water Resistant.",
-    price: 100,
-    image: [pi11],
-    category: "Men",
-    subCategory: "Topwear",
-    sizes: ["S", "M", "L"],
-    date: 1716634345448,
-    bestseller: true,
-  },
-  {
-    _id: "aaad",
-    name: "Watch For men",
-    description:
-      "A lightweight and stylish for men. Casual wear. Water Resistant.",
-    price: 100,
     image: [pi11, pi12, pi13],
     category: "Men",
     subCategory: "Topwear",
@@ -104,16 +66,53 @@ export const products = [
     bestseller: true,
   },
   {
-    _id: "aaae",
-    name: "Watch For men",
+    _id: "aaab",
+    name: "Neckband",
     description:
-      "A lightweight and stylish for men. Casual wear. Water Resistant.",
-    price: 100,
-    image: [pi11],
-    category: "Men",
+      "A lightweight and stylish neckband. Casual wear. Water Resistant.",
+    price: 1200,
+    image: [pi22, pi21],
+    category: ["Men", "Women", "Kids"],
     subCategory: "Topwear",
     sizes: ["S", "M", "L"],
-    date: 1716634345448,
+    date: 1716634345449,
+    bestseller: true,
+  },
+  {
+    _id: "aaac",
+    name: "Earbuds",
+    description:
+      "A lightweight and stylish earbuds. Casual wear. Water Resistant.",
+    price: 1000,
+    image: [pi32, pi31],
+    category: ["Men", "Women", "Kids"],
+    subCategory: "Topwear",
+    sizes: ["S", "M", "L"],
+    date: 1716634345450,
+    bestseller: true,
+  },
+  {
+    _id: "aaad",
+    name: "Motorolla Phone",
+    description: "A lightweight and stylish Phone. Water Resistant.",
+    price: 10000,
+    image: [pi43, pi42, pi41],
+    category: ["Men", "Women", "Kids"],
+    subCategory: "Topwear",
+    sizes: ["S", "M", "L"],
+    date: 1716634345888,
+    bestseller: true,
+  },
+  {
+    _id: "aaae",
+    name: "Cotton Kurti",
+    description: "A lightweight and stylish kurti for women. Casual wear.",
+    price: 100,
+    image: [pi51, pi52, pi53],
+    category: "Women",
+    subCategory: "Topwear",
+    sizes: ["S", "M", "L"],
+    date: 1716634345470,
     bestseller: true,
   },
   {
