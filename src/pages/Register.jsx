@@ -1,5 +1,8 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { auth, db } from "../firebase";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -7,45 +10,38 @@ export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
 
-    // validation
     if (!name || !email || !password) {
       alert("Please fill out all fields");
       return;
     }
 
-    // get existing users
-    const users = JSON.parse(localStorage.getItem("users")) || [];
+    setLoading(true);
 
-    // check if user already exists
-    const userExists = users.find((user) => user.email === email);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const uid = userCredential.user.uid;
 
-    if (userExists) {
-      alert("User already exists!");
-      return;
+      await setDoc(doc(db, "users", uid), {
+        uid,
+        name,
+        email,
+        role: "admin",
+        createdAt: serverTimestamp(),
+      });
+
+      alert("Account created successfully!");
+      navigate("/");
+    } catch (error) {
+      console.error(error);
+      alert(error.message || "Registration failed");
+    } finally {
+      setLoading(false);
     }
-
-    // create new user object (Firebase-ready structure)
-    const newUser = {
-      id: Date.now(),
-      name,
-      email,
-      password,
-      role: "admin",
-      createdAt: new Date().toISOString(),
-    };
-
-    // save user
-    users.push(newUser);
-    localStorage.setItem("users", JSON.stringify(users));
-
-    alert("Account created successfully!");
-
-    // redirect to login
-    navigate("/");
   };
 
   return (

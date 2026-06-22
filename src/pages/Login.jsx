@@ -1,21 +1,25 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../firebase";
 
 export default function Login() {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // 🔥 auto redirect if already logged in
+  //  auto redirect if already logged in
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("loggedInUser"));
     if (user) {
       navigate("/dashboard");
     }
-  }, []);
+  }, [navigate]);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
 
     if (!email || !password) {
@@ -23,25 +27,40 @@ export default function Login() {
       return;
     }
 
-    // get registered users
-    const users = JSON.parse(localStorage.getItem("users")) || [];
+    setLoading(true);
 
-    // find matching user
-    const foundUser = users.find(
-      (user) => user.email === email && user.password === password
-    );
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
 
-    if (!foundUser) {
-      alert("Invalid email or password");
-      return;
+      if (!userDoc.exists()) {
+        throw new Error("User profile not found");
+      }
+
+      const userData = userDoc.data();
+      if (userData.role !== "admin") {
+        alert("Only admin users can access this dashboard.");
+        return;
+      }
+
+      localStorage.setItem(
+        "loggedInUser",
+        JSON.stringify({
+          uid: userCredential.user.uid,
+          email: userData.email,
+          name: userData.name,
+          role: userData.role,
+        })
+      );
+
+      alert("Login successful!");
+      navigate("/dashboard");
+    } catch (error) {
+      console.error(error);
+      alert(error.message || "Invalid email or password");
+    } finally {
+      setLoading(false);
     }
-
-    // store logged-in session
-    localStorage.setItem("loggedInUser", JSON.stringify(foundUser));
-
-    alert("Login successful!");
-
-    navigate("/dashboard");
   };
 
   return (

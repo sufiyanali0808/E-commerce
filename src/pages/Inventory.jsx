@@ -1,4 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+import {
+  collection,
+  addDoc,
+  doc,
+  deleteDoc,
+  getDocs,
+  query,
+  orderBy,
+  updateDoc,
+} from "firebase/firestore";
+import { db } from "../firebase";
+
 import { Pencil, Trash2 } from "lucide-react";
 import Navbar from "../components/Navbar";
 import BottomNav from "../components/BottomNav";
@@ -136,76 +149,156 @@ export default function Inventory() {
     limitedEdition: false,
   });
 
-  const addProduct = () => {
-    if (
-      !newProduct.name ||
-      !newProduct.description ||
-      !newProduct.price
-    ) {
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const productsRef = collection(db, "products");
+        const productsQuery = query(
+          productsRef,
+          orderBy("date", "desc")
+        );
+        const snapshot = await getDocs(productsQuery);
+
+        if (!snapshot.empty) {
+          const firestoreProducts = snapshot.docs.map((docItem) => {
+            const data = docItem.data();
+            return {
+              firebaseId: docItem.id,
+              _id: docItem.id,
+              name: data.name,
+              description: data.description,
+              price: Number(data.price) || 0,
+              image: Array.isArray(data.image)
+                ? data.image
+                : [data.image || "https://images.unsplash.com/photo-1523170335258-f5ed11844a49"],
+              category: data.category,
+              subCategory: data.subCategory,
+              sizes: Array.isArray(data.sizes)
+                ? data.sizes
+                : (data.sizes || "")
+                    .split(",")
+                    .map((size) => size.trim())
+                    .filter(Boolean),
+              bestseller: Boolean(data.bestseller),
+              limitedEdition: Boolean(data.limitedEdition),
+              date: data.date || Date.now(),
+            };
+          });
+
+          setProducts(firestoreProducts);
+        }
+      } catch (error) {
+        console.error("Error loading products from Firestore:", error);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  const addProduct = async () => {
+    const name = String(newProduct.name ?? "").trim();
+    const description = String(newProduct.description ?? "").trim();
+    const priceValue = String(newProduct.price ?? "").trim();
+
+    if (!name || !description || priceValue === "") {
       alert("Please fill all required fields");
       return;
     }
 
-    const product = {
-      _id: editingId || Date.now().toString(),
-      name: newProduct.name,
-      description: newProduct.description,
-      price: Number(newProduct.price),
+    const productPayload = {
+      name,
+      description,
+      price: Number(priceValue),
       image: [
-        newProduct.image ||
+        String(newProduct.image || "").trim() ||
           "https://images.unsplash.com/photo-1523170335258-f5ed11844a49",
       ],
-      category: newProduct.category,
-      subCategory: newProduct.subCategory,
-      sizes: newProduct.sizes
+      category: String(newProduct.category || "Men").trim(),
+      subCategory: String(newProduct.subCategory || "WATCHES").trim(),
+      sizes: String(newProduct.sizes || "")
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean),
+      bestseller: Boolean(newProduct.bestseller),
+      limitedEdition: Boolean(newProduct.limitedEdition),
       date: Date.now(),
-      bestseller: newProduct.bestseller,
-      limitedEdition: newProduct.limitedEdition,
     };
 
-    if (editingId) {
-      setProducts(
-        products.map((p) =>
-          p._id === editingId ? product : p
-        )
-      );
+    try {
+      if (editingId) {
+        const productRef = doc(db, "products", editingId);
+        await updateDoc(productRef, productPayload);
 
-      alert("✅ Product Updated");
-    } else {
-      setProducts([product, ...products]);
+        setProducts(
+          products.map((p) =>
+            p.firebaseId === editingId
+              ? { ...p, ...productPayload }
+              : p
+          )
+        );
 
-      alert("✅ Product Added");
+        alert("✅ Product Updated");
+      } else {
+        const docRef = await addDoc(
+          collection(db, "products"),
+          productPayload
+        );
+
+        setProducts([
+          {
+            ...productPayload,
+            firebaseId: docRef.id,
+            _id: docRef.id,
+          },
+          ...products,
+        ]);
+
+        alert("✅ Product Added");
+      }
+
+      setEditingId(null);
+      setShowAddModal(false);
+
+      setNewProduct({
+        name: "",
+        description: "",
+        price: "",
+        image: "",
+        category: "Men",
+        subCategory: "WATCHES",
+        sizes: "",
+        bestseller: false,
+        limitedEdition: false,
+      });
+    } catch (error) {
+      console.error("Error saving product to Firestore:", error);
+      alert("Failed to save product");
     }
-
-    setEditingId(null);
-    setShowAddModal(false);
-
-    setNewProduct({
-      name: "",
-      description: "",
-      price: "",
-      image: "",
-      category: "Men",
-      subCategory: "WATCHES",
-      sizes: "",
-      bestseller: false,
-      limitedEdition: false,
-    });
   };
 
-  const deleteProduct = (id) => {
+  
+  const deleteProduct = async (product) => {
     if (window.confirm("Delete this product?")) {
-      setProducts(
-        products.filter((p) => p._id !== id)
-      );
+      try {
+        if (product.firebaseId) {
+          await deleteDoc(
+            doc(db, "products", product.firebaseId)
+          );
+        }
+
+        setProducts(
+          products.filter((p) => p._id !== product._id)
+        );
+        alert("✅ Product Deleted");
+      } catch (error) {
+        console.error("Error deleting product from Firestore:", error);
+        alert("Failed to delete product");
+      }
     }
   };
 
   const editProduct = (p) => {
-    setEditingId(p._id);
+    setEditingId(p.firebaseId || p._id);
 
     setNewProduct({
       name: p.name,
@@ -214,7 +307,9 @@ export default function Inventory() {
       image: p.image[0],
       category: p.category,
       subCategory: p.subCategory,
-      sizes: p.sizes.join(", "),
+      sizes: Array.isArray(p.sizes)
+        ? p.sizes.join(", ")
+        : p.sizes,
       bestseller: p.bestseller,
       limitedEdition: p.limitedEdition,
     });
@@ -460,7 +555,7 @@ export default function Inventory() {
 
                 <button
                   onClick={() =>
-                    deleteProduct(item._id)
+                    deleteProduct(item)
                   }
                   className="text-gray-500 hover:text-red-600"
                 >

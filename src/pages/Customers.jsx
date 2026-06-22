@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { collection, addDoc, doc, deleteDoc, updateDoc } from "firebase/firestore"; 
+import { db } from "../firebase";
+
 import {
   Search,
   Mail,
@@ -99,68 +102,94 @@ export default function Customers() {
         .includes(search.toLowerCase())
   );
 
-  const addCustomer = () => {
-    if (
-      !newCustomer.name ||
-      !newCustomer.email
-    ) {
+  const addCustomer = async () => {
+    if (!newCustomer.name || !newCustomer.email) {
       alert("Please fill all fields");
       return;
     }
 
-    const customer = {
-      id: editingId || Date.now(),
-      name: newCustomer.name,
-      email: newCustomer.email,
-      avatar: newCustomer.avatar,
-      spend: Number(newCustomer.spend),
-      tier: newCustomer.tier.toUpperCase(),
-      lastOrder: "JUST NOW",
-      history: [],
-    };
+    try {
+      const customer = {
+        name: newCustomer.name,
+        email: newCustomer.email,
+        avatar: newCustomer.avatar,
+        spend: Number(newCustomer.spend),
+        tier: newCustomer.tier.toUpperCase(),
+        lastOrder: "JUST NOW",
+        history: [],
+      };
 
-    if (editingId) {
-      setCustomers(
-        customers.map((c) =>
-          c.id === editingId ? customer : c
-        )
-      );
+      if (editingId) {
+        // Update existing customer in Firestore
+        const customerRef = doc(db, "customers", editingId);
+        await updateDoc(customerRef, customer);
 
-      alert("Customer Updated");
-    } else {
-      setCustomers([customer, ...customers]);
+        // Update local state
+        setCustomers(
+          customers.map((c) =>
+            c.firebaseId === editingId
+              ? { ...c, ...customer }
+              : c
+          )
+        );
+        alert("Customer Updated!");
+      } else {
+        // Add new customer to Firestore
+        const docRef = await addDoc(collection(db, "customers"), {
+          ...customer,
+          createdAt: new Date().toISOString(),
+        });
 
-      alert("Customer Added");
+        // Update local state with Firestore ID
+        setCustomers([
+          { ...customer, firebaseId: docRef.id, id: Date.now() },
+          ...customers,
+        ]);
+        alert("Customer Added to Firestore!");
+      }
+
+      // Reset form
+      setEditingId(null);
+      setNewCustomer({
+        name: "",
+        email: "",
+        avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
+        spend: 0,
+        tier: "Silver",
+      });
+      setShowModal(false);
+    } catch (error) {
+      console.error("Error saving customer: ", error);
+      alert("Failed to save customer");
     }
-
-    setEditingId(null);
-
-    setNewCustomer({
-      name: "",
-      email: "",
-      avatar:
-        "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
-      spend: 0,
-      tier: "Silver",
-    });
-
-    setShowModal(false);
   };
 
-  const deleteCustomer = (id) => {
+  const deleteCustomer = async (customer) => {
     if (
       window.confirm(
         "Delete this customer?"
       )
     ) {
-      setCustomers(
-        customers.filter((c) => c.id !== id)
-      );
+      try {
+        // Delete from Firestore if it has firebaseId
+        if (customer.firebaseId) {
+          await deleteDoc(doc(db, "customers", customer.firebaseId));
+        }
+
+        // Update local state
+        setCustomers(
+          customers.filter((c) => c.id !== customer.id)
+        );
+        alert("Customer Deleted!");
+      } catch (error) {
+        console.error("Error deleting customer: ", error);
+        alert("Failed to delete customer");
+      }
     }
   };
 
   const editCustomer = (customer) => {
-    setEditingId(customer.id);
+    setEditingId(customer.firebaseId || customer.id);
 
     setNewCustomer({
       name: customer.name,
@@ -172,6 +201,7 @@ export default function Customers() {
 
     setShowModal(true);
   };
+
 
   return (
     <div className="bg-[#f5f4f3] min-h-screen pb-28 overflow-x-hidden">
@@ -398,7 +428,7 @@ export default function Customers() {
 
                       <button
                         onClick={() =>
-                          deleteCustomer(customer.id)
+                          deleteCustomer(customer)
                         }
                         className="w-full px-5 py-4 flex items-center gap-3 hover:bg-red-50 text-red-600 transition-all duration-200"
                       >
