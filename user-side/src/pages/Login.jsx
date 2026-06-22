@@ -1,115 +1,66 @@
-import { Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "../firebase";
+import React from "react";
+import { useState } from "react";
 
-export default function Login() {
-  const navigate = useNavigate();
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  //  auto redirect if already logged in
-  useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("loggedInUser"));
-    if (user) {
-      navigate("/dashboard");
-    }
-  }, [navigate]);
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-
-    if (!email || !password) {
-      alert("Please fill out all fields");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
-
-      if (!userDoc.exists()) {
-        throw new Error("User profile not found");
-      }
-
-      const userData = userDoc.data();
-      if (userData.role !== "admin") {
-        alert("Only admin users can access this dashboard.");
-        return;
-      }
-
-      localStorage.setItem(
-        "loggedInUser",
-        JSON.stringify({
-          uid: userCredential.user.uid,
-          email: userData.email,
-          name: userData.name,
-          role: userData.role,
-        })
-      );
-
-      alert("Login successful!");
-      navigate("/dashboard");
-    } catch (error) {
-      console.error(error);
-      alert(error.message || "Invalid email or password");
-    } finally {
-      setLoading(false);
-    }
+const Login = () => {
+  const [currentState, setCurrentState] = useState("Login");
+  const onSubmitHandler = async (event) => {
+    event.preventDefault();
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f7f7] flex items-center justify-center p-6">
-      <div className="bg-white w-full max-w-md rounded-2xl border p-8 shadow-sm">
-
-        <h1 className="text-3xl font-bold text-center mb-2">
-          Admin Login
-        </h1>
-
-        <p className="text-gray-500 text-center mb-8">
-          Sign in to your admin account
-        </p>
-
-        <form onSubmit={handleLogin} className="space-y-4">
-
-          <input
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full border rounded-lg p-3"
-          />
-
-          <input
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full border rounded-lg p-3"
-          />
-
-          <button
-            type="submit"
-            className="w-full bg-black text-white py-3 rounded-lg"
-          >
-            Login
-          </button>
-
-        </form>
-
-        <p className="text-center mt-6">
-          Don't have an account?{" "}
-          <Link to="/register" className="font-semibold">
-            Register
-          </Link>
-        </p>
-
+    <form
+      onSubmit={onSubmitHandler}
+      className="flex flex-col items-center w-[90%] sm:max-w-96 m-auto mt-14 gap-4 text-gray-700"
+    >
+      <div className="inline-flex items-center gap-2 mb-2 mt-10">
+        <p className="prata-regular text-3xl">{currentState} </p>
+        <hr className="border-none h-[1.5px] w-8 bg-gray-800"></hr>
       </div>
-    </div>
+      {currentState == "Login" ? (
+        ""
+      ) : (
+        <input
+          type="text"
+          className="w-full px-3 py-2 border border-gray-800"
+          placeholder="Name"
+          required
+        />
+      )}
+      <input
+        type="text"
+        className="w-full px-3 py-2 border border-gray-800"
+        placeholder="Email"
+        required
+      />
+      <input
+        type="text"
+        className="w-full px-3 py-2 border border-gray-800"
+        placeholder="Password"
+        required
+      />
+      <div className="w-full flex justify-between text-sm mt-[-8px]">
+        <p className="cursor-pointer">Forgot Your Password?</p>
+        {currentState == "Login" ? (
+          <p
+            onClick={() => setCurrentState("Sign Up")}
+            className="cursor-pointer"
+          >
+            Create Account
+          </p>
+        ) : (
+          <p
+            onClick={() => setCurrentState("Login")}
+            className="cursor-pointer"
+          >
+            Login Here
+          </p>
+        )}
+      </div>
+      <button className="bg-black text-white font-light px-8 py-2 mt-4">
+        {currentState == "Login" ? "Sign In" : "Sign Up"}
+      </button>
+    </form>
   );
-}
+};
+
+export default Login;
